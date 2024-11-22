@@ -3,10 +3,11 @@
 
 
 
-
+<h3> LemLib Public Repo: </h3>
+<p>https://github.com/LemLib/LemLib</p>
+<hb></hb>
 <h3>For any Inquiries on our robot/code, feel welcome to join our discord!</h3>
-
-https://discord.gg/ynvkeHr9
+<p>https://discord.gg/ynvkeHr9</p>
 
 
 
