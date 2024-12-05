@@ -1,10 +1,12 @@
 #include "main.h"
 #include "liblvgl/llemu.hpp"
+#include "pros/adi.h"
+#include "pros/adi.hpp"
 #include "pros/motors.hpp"
 
 
 pros::Motor testmotor(1);
-
+pros::adi::DigitalOut pneumatics('A');
 
 /**
  * A callback function for LLEMU's center button.
@@ -15,7 +17,7 @@ pros::Motor testmotor(1);
 
 
 
-float motorvel = 127 * .75;
+float motorvel = 127 * 1;
 
 
 
@@ -27,20 +29,18 @@ void on_left_button() {
 	static bool pressed = false;
 	pressed = !pressed;
 	if (pressed) {
-        pros::lcd::set_text(2, leftButtonText);
-	} else pros::lcd::clear_line(2);
-    testmotor.move(motorvel);
-
+        testmotor.move(-motorvel);
+	} else testmotor.brake();
 }
 void on_center_button() {
 	static bool pressed = false;
 	pressed = !pressed;
 	if (pressed) {
-        pros::lcd::set_text(3, leftButtonText);
+        pneumatics.set_value(HIGH);
         
-	} else pros::lcd::clear_line(3);
+	} else pneumatics.set_value(LOW);
 
-    testmotor.move(motorvel);
+    //testmotor.move(motorvel);
 }
 void on_right_button() {
 	static bool pressed = false;
@@ -50,8 +50,6 @@ void on_right_button() {
 	} else {
 		pros::lcd::clear_line(4);
 	}
-
-    testmotor.brake();
 
     //testmotor.set_brake_mode()
 }
