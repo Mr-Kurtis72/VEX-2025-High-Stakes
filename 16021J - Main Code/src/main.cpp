@@ -2,14 +2,30 @@
 #include "lemlib/api.hpp"
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "pros/abstract_motor.hpp"
+#include <cstdio>
+#include <unordered_map>
 
 
+pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
+static std::unordered_map<std::string, pros::controller_digital_e_t> buttonMap = {
+    {"Stake Lock", pros::E_CONTROLLER_DIGITAL_L1},
+    {"Conveyer Spin", pros::E_CONTROLLER_DIGITAL_R1}
+};
+
+int intake_velocity = 127;
+
+
+//pneumatic control
+pros::adi::DigitalOut stake_lock('E');
+
+//intake motor
+pros::Motor intake_motor (1);
 
 // left motor group
-pros::MotorGroup left_motor_group({-1, -2, -3}, pros::MotorGears::blue);
+pros::MotorGroup left_motor_group({-3, -7, -6}, pros::MotorGears::blue);
 // right motor group
-pros::MotorGroup right_motor_group({9, 6, 7}, pros::MotorGears::green);
+pros::MotorGroup right_motor_group({18, 19, 20}, pros::MotorGears::blue);
 
 // drivetrain settings
 lemlib::Drivetrain drivetrain(&left_motor_group, // left motor group
@@ -70,6 +86,31 @@ lemlib::Chassis chassis(drivetrain, // drivetrain settings
                         sensors // odometry sensors
 );
 
+
+//ran as a task; enables or disables the stake lock upon button press
+void toggle_stake_lock(){
+    static bool pressed = false;
+    while (true){
+        if(controller.get_digital(buttonMap["Stake Lock"])){
+            pressed = !pressed;
+            stake_lock.set_value(pressed);
+
+            pros::c::delay(250);
+        }
+        pros::c::delay(25);   
+    }
+}
+
+void conveyer_spin(){
+    //static bool pressed = false;
+    while(true){
+        if(controller.get_digital(buttonMap["Conveyer Spin"])){
+            intake_motor.move(intake_velocity);
+        } else intake_motor.brake();
+        pros::c::delay(25);
+    }
+}
+
 // initialize function. Runs on program startup
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
@@ -82,7 +123,7 @@ void initialize() {
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
             // delay to save resources
-            pros::delay(20);
+            pros::delay(25);
         }
     });
 }
@@ -156,9 +197,11 @@ void autonomous() {}
  * operator control task will be stopped. Re-enabling the robot will restart the
  * task, not resume it from where it left off.
  */
-pros::Controller controller(pros::E_CONTROLLER_MASTER);
 
 void opcontrol() {
+    pros::Task stake_lock_task(toggle_stake_lock);
+    pros::Task conveyer_spin_task(conveyer_spin);
+
     // loop forever
     while (true) {
         // get left y and right x positions
@@ -167,6 +210,9 @@ void opcontrol() {
 
         // move the robot
         chassis.arcade(leftY, rightX);
+
+
+        //stake_lock.set_value(controller.get_digital(buttonMap["Stake Lock"]));
 
         // delay to save resources
         pros::delay(25);
