@@ -3,7 +3,9 @@
 #include "lemlib/chassis/trackingWheel.hpp"
 #include "pros/abstract_motor.hpp"
 #include "pros/misc.h"
+#include "pros/rtos.h"
 #include <cstdio>
+#include <math.h>
 #include <unordered_map>
 
 
@@ -126,7 +128,7 @@ void conveyer_spin(){
 void initialize() {
     pros::lcd::initialize(); // initialize brain screen
     chassis.calibrate(); // calibrate sensors
-    chassis.setPose(-60, 0, 90);// set chassis pose
+    chassis.setPose(-55.5, 12, 270);// set chassis pose
 
     // print position to brain screen
     pros::Task screen_task([&]() {
@@ -200,12 +202,41 @@ void competition_initialize() {}
 // "." is replaced with "_" to overcome c++ limitations
 ASSET(path_txt);
 
+
+
+void auto_conveyer_spin(int velocity){
+    intake_motor1.move(velocity);
+    intake_motor2.move(velocity);
+
+    if(velocity == 0){
+        intake_motor1.brake();
+        intake_motor2.brake();
+    }
+}
+
+
 void autonomous() {
     
     // lookahead distance: 15 inches
     // timeout: 2000 ms
-    chassis.follow(path_txt, 15, 10000);
+    //chassis.follow(path_txt, 15, 10000);
     // follow the next path, but with the robot going backwards
+
+    chassis.moveToPose(-46, 12, 270, 1500, {.forwards=false});
+    chassis.waitUntilDone();
+
+    chassis.turnToPoint(-24, 24, 1500, {.forwards=false});
+    chassis.waitUntilDone();
+
+    chassis.tank(-127,-127);
+    pros::c::delay(300);
+
+    stake_lock.set_value(1);
+    pros::c::delay(250);
+    chassis.tank(0,0);
+
+    auto_conveyer_spin(127);//max 127, min -127
+    //chassis.moveToPose(-31.5, 19.5, 245, 20000, {.forwards=true});
 }
 /**
  * Runs the operator control code. This function will be started in its own task
