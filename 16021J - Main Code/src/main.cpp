@@ -9,8 +9,9 @@
 #include <unordered_map>
 
 
-pros::Controller controller(pros::E_CONTROLLER_MASTER);
+pros::Controller controller(pros::E_CONTROLLER_MASTER); //defined before keybinds because syntax :/
 
+//Map of all used keybinds for convinience of changing/adding new ones. (ty paul)
 static std::unordered_map<std::string, pros::controller_digital_e_t> buttonMap = {
     {"Stake Lock", pros::E_CONTROLLER_DIGITAL_L1},
     {"Conveyer Spin", pros::E_CONTROLLER_DIGITAL_R1},
@@ -26,7 +27,6 @@ pros::adi::DigitalOut stake_lock('E');
 //intake motor
 pros::Motor intake_motor1 (1);
 pros::Motor intake_motor2 (5);
-
 
 // left motor group
 pros::MotorGroup left_motor_group({-7, -6}, pros::MotorGears::blue);
@@ -203,7 +203,10 @@ void competition_initialize() {}
 ASSET(path_txt);
 
 
+//area to create funtions used EXCLUSIVELY FOR AUTONOMOUS
+//also make sure that everything sis disable/stopped before autonomous ends.
 
+//the range for conveyer velocity is [-127,127] (due to the range of analog sticks on controller)
 void auto_conveyer_spin(int velocity){
     intake_motor1.move(velocity);
     intake_motor2.move(velocity);
@@ -214,29 +217,26 @@ void auto_conveyer_spin(int velocity){
     }
 }
 
-
+//starting position for autonomous is found in initialization()
 void autonomous() {
     
-    // lookahead distance: 15 inches
-    // timeout: 2000 ms
-    //chassis.follow(path_txt, 15, 10000);
-    // follow the next path, but with the robot going backwards
-
+    //positioning for driving into stake(backwards because the stake latch is on the back of the robot)
     chassis.moveToPose(-46, 12, 270, 1500, {.forwards=false});
-    chassis.waitUntilDone();
+    chassis.waitUntilDone(); //not really sure if this works, but it ensures that only one command is run at a time.
 
+    //turns away from the stake; (-24, 24) is the position of the stake. 
     chassis.turnToPoint(-24, 24, 1500, {.forwards=false});
-    chassis.waitUntilDone();
+    chassis.waitUntilDone(); //not really sure if this works, but it ensures that only one command is run at a time.
 
-    chassis.tank(-127,-127);
+    //drive backwards into stake
+    chassis.tank(-127,-127); //drive backwards at full speed using lemlib function
     pros::c::delay(300);
 
-    stake_lock.set_value(1);
+    stake_lock.set_value(1); //enables stake lock
     pros::c::delay(250);
-    chassis.tank(0,0);
+    chassis.tank(0,0); //stops chassis movement
 
-    auto_conveyer_spin(127);//max 127, min -127
-    //chassis.moveToPose(-31.5, 19.5, 245, 20000, {.forwards=true});
+    auto_conveyer_spin(127); //TEMP; just to show formatting for future use
 }
 /**
  * Runs the operator control code. This function will be started in its own task
@@ -253,6 +253,7 @@ void autonomous() {
  */
 
 void opcontrol() {
+    //individual inputs are ran on a seperate task, this makes the task run (almost) instantly and at the same time
     pros::Task stake_lock_task(toggle_stake_lock);
     pros::Task conveyer_spin_task(conveyer_spin);
 
@@ -264,9 +265,6 @@ void opcontrol() {
 
         // move the robot
         chassis.arcade(leftY, rightX);
-
-
-        //stake_lock.set_value(controller.get_digital(buttonMap["Stake Lock"]));
 
         // delay to save resources
         pros::delay(25);
