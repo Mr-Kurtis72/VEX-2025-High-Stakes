@@ -100,7 +100,7 @@ void toggle_stake_lock(){
         if(controller.get_digital(buttonMap["Stake Lock"])){
             pressed = !pressed;
             stake_lock.set_value(pressed);
-
+            while (controller.get_digital(buttonMap["Stake Lock"])) {pros::c::delay(25);}
             pros::c::delay(250);
         }
         pros::c::delay(25);   
@@ -137,6 +137,10 @@ void initialize() {
             pros::lcd::print(0, "X: %f", chassis.getPose().x); // x
             pros::lcd::print(1, "Y: %f", chassis.getPose().y); // y
             pros::lcd::print(2, "Theta: %f", chassis.getPose().theta); // heading
+            int rot = (int(chassis.getPose().theta) % 360) * 4 / 45; // Divides it into n parts of 45 (theta * n / 45)
+            std::string compass = "|||||||||||||||||"; // Length of string is n*4 + 1
+            if (rot < compass.length()) compass[rot] = 'H'; // Adds pointer at nearest n part of 45
+            pros::lcd::print(3, "%s", compass);
             // delay to save resources
             pros::delay(25);
         }
